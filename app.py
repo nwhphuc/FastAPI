@@ -55,7 +55,17 @@ async def log_user_activity(data: UserActivity, request: Request):
     else:
         df_all = df_new
 
+    # 📌 Chuyển cột thời gian thành datetime để lọc
+    df_all["time"] = pd.to_datetime(df_all["time"], errors='coerce')
+    df_all = df_all.dropna(subset=["time"])  # ✅ Bỏ dòng không convert được
+    
+    # 🔁 Giữ lại log trong 60 ngày gần nhất
+    cutoff_date = pd.Timestamp.now() - pd.Timedelta(days=60)
+    df_all = df_all[df_all["time"] >= cutoff_date]
+
+    # 💾 Ghi lại file sau khi lọc
     df_all.to_csv(log_file_path, index=False)
+
 
     return {"status": "ok", "message": "Log added successfully"}
 
