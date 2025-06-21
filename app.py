@@ -11,17 +11,16 @@ app = FastAPI()
 # CORS cho phép frontend gọi API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Cho phép tất cả domain, có thể giới hạn sau
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Khai báo dữ liệu đầu vào
+# 🎯 Khai báo dữ liệu đầu vào – ĐÃ BỎ user_agent
 class UserActivity(BaseModel):
     username: str
     activity: str
-    user_agent: str
 
 # API root
 @app.get("/")
@@ -35,7 +34,7 @@ async def log_user_activity(data: UserActivity, request: Request):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     # Ghi log ra console
-    log_message = f"[{now}] User: {data.username} | IP: {ip} | Activity: {data.activity} | User-Agent: {data.user_agent}"
+    log_message = f"[{now}] User: {data.username} | IP: {ip} | Activity: {data.activity}"
     logging.info(log_message)
 
     # Ghi log vào file CSV
@@ -46,8 +45,7 @@ async def log_user_activity(data: UserActivity, request: Request):
         "time": now,
         "username": data.username,
         "ip": ip,
-        "activity": data.activity,
-        "user_agent": data.user_agent,
+        "activity": data.activity
     }
 
     df_new = pd.DataFrame([new_log])
@@ -68,7 +66,7 @@ def view_log():
     try:
         if os.path.exists(log_file_path):
             df = pd.read_csv(log_file_path)
-            return df.tail(50).to_dict(orient="records")  # Trả về 50 dòng mới nhất
+            return df.tail(50).to_dict(orient="records")
         else:
             return {"log": [], "note": "Log chưa tồn tại"}
     except Exception as e:
