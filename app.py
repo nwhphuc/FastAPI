@@ -49,3 +49,7 @@ async def log_user_activity(request: Request):
     except Exception as e:
         logging.error(f"Error logging activity: {e}")
         return {"status": "error", "message": str(e)}
+
+@app.get("/")
+def read_root():
+    return {"message": "RMA Log API is running"}
