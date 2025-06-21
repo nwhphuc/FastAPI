@@ -81,3 +81,8 @@ def view_log():
             return {"log": [], "note": "Log chưa tồn tại"}
     except Exception as e:
         return {"error": str(e)}
+
+@app.get("/ping")
+def ping():
+    return {"status": "ok"}
+
