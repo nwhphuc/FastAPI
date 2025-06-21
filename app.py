@@ -82,7 +82,12 @@ def view_log():
     except Exception as e:
         return {"error": str(e)}
 
-@app.get("/ping")
-def ping():
-    return {"status": "ok"}
+from fastapi.responses import JSONResponse
+
+# API ping để uptime - hỗ trợ GET + HEAD, ẩn khỏi docs
+@app.get("/ping", include_in_schema=False)
+@app.head("/ping", include_in_schema=False)
+async def ping():
+    return JSONResponse(content={"status": "ok"})
+
 
