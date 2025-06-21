@@ -60,3 +60,12 @@ async def log_user_activity(data: UserActivity, request: Request):
     df_all.to_csv(log_file_path, index=False)
 
     return {"status": "ok", "message": "Log added successfully"}
+    
+@app.get("/view_log")
+def view_log():
+    try:
+        with open("data/access_log.txt", "r", encoding="utf-8") as f:
+            content = f.read()
+        return {"log": content}
+    except Exception as e:
+        return {"error": str(e)}
