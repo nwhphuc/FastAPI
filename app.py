@@ -1,55 +1,62 @@
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import datetime
 import logging
 import os
 import pandas as pd
 
-# Khởi tạo FastAPI
 app = FastAPI()
 
-# Cấu hình logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
+# CORS cho phép frontend gọi API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Cho phép tất cả domain, có thể giới hạn sau
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# Đường dẫn file log
-LOG_FILE = "data/log_access.csv"
+# Khai báo dữ liệu đầu vào
+class UserActivity(BaseModel):
+    username: str
+    activity: str
+    user_agent: str
 
-# Định nghĩa endpoint ghi log người dùng
-@app.post("/log_user_activity")
-async def log_user_activity(request: Request):
-    try:
-        data = await request.json()
-        username = data.get("username", "Unknown")
-        activity = data.get("activity", "No activity")
-        ip = request.client.host
-        user_agent = data.get("userAgent", "Unknown")
-        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        # Ghi ra log console
-        log_message = f"[{now}] User: {username} | IP: {ip} | Activity: {activity} | User-Agent: {user_agent}"
-        logging.info(log_message)
-
-        # Ghi vào file CSV
-        os.makedirs("data", exist_ok=True)
-        if not os.path.exists(LOG_FILE):
-            df = pd.DataFrame(columns=["time", "username", "ip", "activity", "user_agent"])
-            df.to_csv(LOG_FILE, index=False)
-
-        df = pd.read_csv(LOG_FILE)
-        new_row = {
-            "time": now,
-            "username": username,
-            "ip": ip,
-            "activity": activity,
-            "user_agent": user_agent
-        }
-        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-        df.to_csv(LOG_FILE, index=False)
-
-        return {"status": "ok", "message": "Log added successfully"}
-    except Exception as e:
-        logging.error(f"Error logging activity: {e}")
-        return {"status": "error", "message": str(e)}
-
+# API root
 @app.get("/")
 def read_root():
     return {"message": "RMA Log API is running"}
+
+# API ghi log truy cập
+@app.post("/log_user_activity")
+async def log_user_activity(data: UserActivity, request: Request):
+    ip = request.client.host
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Ghi log ra console
+    log_message = f"[{now}] User: {data.username} | IP: {ip} | Activity: {data.activity} | User-Agent: {data.user_agent}"
+    logging.info(log_message)
+
+    # Ghi log vào file CSV
+    log_file_path = "data/log_access.csv"
+    os.makedirs("data", exist_ok=True)
+
+    new_log = {
+        "time": now,
+        "username": data.username,
+        "ip": ip,
+        "activity": data.activity,
+        "user_agent": data.user_agent,
+    }
+
+    df_new = pd.DataFrame([new_log])
+    if os.path.exists(log_file_path):
+        df_old = pd.read_csv(log_file_path)
+        df_all = pd.concat([df_old, df_new], ignore_index=True)
+    else:
+        df_all = df_new
+
+    df_all.to_csv(log_file_path, index=False)
+
+    return {"status": "ok", "message": "Log added successfully"}
