@@ -60,12 +60,16 @@ async def log_user_activity(data: UserActivity, request: Request):
     df_all.to_csv(log_file_path, index=False)
 
     return {"status": "ok", "message": "Log added successfully"}
-    
+
+# API xem log gần nhất
 @app.get("/view_log")
 def view_log():
+    log_file_path = "data/log_access.csv"
     try:
-        with open("data/access_log.txt", "r", encoding="utf-8") as f:
-            content = f.read()
-        return {"log": content}
+        if os.path.exists(log_file_path):
+            df = pd.read_csv(log_file_path)
+            return df.tail(50).to_dict(orient="records")  # Trả về 50 dòng mới nhất
+        else:
+            return {"log": [], "note": "Log chưa tồn tại"}
     except Exception as e:
         return {"error": str(e)}
